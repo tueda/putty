@@ -2629,6 +2629,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
     }
     return 0;
   case WM_DESTROY:
+    WTSUnRegisterSessionNotificationEx(WTS_CURRENT_SERVER, hwnd);
     show_mouseptr(1);
     bg_release();
     dw_release();
