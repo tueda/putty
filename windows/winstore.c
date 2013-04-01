@@ -121,6 +121,57 @@ static char* generate_keyname(const char* p) {
     return keyname;
 }
 
+VOID GetPrivateProfileString2(
+		LPCTSTR lpAppName,
+		LPCTSTR lpKeyName,
+		LPCTSTR lpDefault,
+		LPTSTR lpReturnedString,
+		DWORD nSize,
+		LPCTSTR lpFileName) {
+	char tmp[3];
+	GetPrivateProfileString(lpAppName, lpKeyName, "\n:", tmp, 3, lpFileName);
+	if (tmp[0] == '\n') {
+		if (strncmp(lpAppName, "Session:", 8) == 0) {
+			GetPrivateProfileString("Session:Default%20Settings", lpKeyName, lpDefault, lpReturnedString, nSize, lpFileName);
+			return;
+		}
+	}
+	GetPrivateProfileString(lpAppName, lpKeyName, lpDefault, lpReturnedString, nSize, lpFileName);
+}
+
+VOID WritePrivateProfileString2(
+		LPCTSTR lpAppName,
+		LPCTSTR lpKeyName,
+		LPCTSTR lpString,
+		LPCTSTR lpFileName) {
+	char tmp[3];
+	BOOL bWrite = TRUE;
+	GetPrivateProfileString(lpAppName, lpKeyName, "\n:", tmp, 3, lpFileName);
+	if (tmp[0] == '\n') {
+		if (strncmp(lpAppName, "Session:", 8) == 0) {
+			int buflen = strlen(lpString) + 2;
+			char *buf = snewn(buflen, char);
+			int n = GetPrivateProfileString("Session:Default%20Settings", lpKeyName, "\n:", buf + 1, buflen - 1, lpFileName);
+			if (tmp[0] == '\n') {
+				if (n == buflen - 2 && strcmp(lpString, buf + 1) == 0) {
+					bWrite = FALSE;
+				} else if (n == buflen - 4) {
+					buf[0] = '"';
+					buf[n + 1] = '"';
+					buf[n + 2] = '\0';
+					if (strcmp(lpString, buf) == 0) {
+						bWrite = FALSE;
+					}
+				}
+			}
+			sfree(buf);
+		}
+	}
+	if (bWrite) {
+		WritePrivateProfileString(lpAppName, lpKeyName, lpString, lpFileName);
+	}
+}
+
 void *open_settings_w(const char *sessionname, char **errmsg)
 {
     HKEY subkey1, sesskey;
@@ -172,7 +223,7 @@ void write_setting_s(void *handle, const char *key, const char *value)
 	    strcpy(buffer + 1, value);
 	    buffer[0] = buffer[length + 1] = '"';
 	    buffer[length + 2] = '\0';
-	    WritePrivateProfileString((char*) handle, key, buffer, inifile);
+	    WritePrivateProfileString2((char*) handle, key, buffer, inifile);
 	    sfree(buffer);
 	}
 	return;
@@ -188,7 +239,7 @@ void write_setting_i(void *handle, const char *key, int value)
 	if (handle) {
 	    char v[10];
 	    sprintf(v, "%d", value);
-	    WritePrivateProfileString((char*) handle, key, v, inifile);
+	    WritePrivateProfileString2((char*) handle, key, v, inifile);
 	}
 	return;
     }
@@ -251,7 +302,7 @@ char *read_setting_s(void *handle, const char *key)
 
     if (get_use_inifile()) {
 	char buffer[1024];
-	GetPrivateProfileString((char*)handle, key, "\n:", buffer, 1024, inifile);
+	GetPrivateProfileString2((char*)handle, key, "\n:", buffer, 1024, inifile);
 	if (buffer[0] != '\n') {
 	    return dupstr(buffer);
 	} else {
@@ -288,7 +339,7 @@ int read_setting_i(void *handle, const char *key, int defvalue)
     if (get_use_inifile()) {
 	if (handle) {
 	    char buffer[32];
-	    GetPrivateProfileString((char*) handle, key, "", buffer, sizeof (buffer), inifile);
+	    GetPrivateProfileString2((char*) handle, key, "", buffer, sizeof (buffer), inifile);
 	    if (('0' <= buffer[0] && buffer[0] <= '9') ||
                 ((buffer[0] == '-') &&
                  ('0' <= buffer[1] && buffer[1] <= '9')))
