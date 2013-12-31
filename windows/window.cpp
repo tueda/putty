@@ -30,6 +30,7 @@ extern "C" {
 #include <richedit.h>
 #include <mmsystem.h>
 #include <dwmapi.h>
+#include <tchar.h>
 /* From MSDN: In the WM_SYSCOMMAND message, the four low-order bits of
  * wParam are used by Windows, and should be masked off, so we shouldn't
  * attempt to store information in them. Hence all these identifiers have
@@ -5525,22 +5526,29 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
   return -1;
 }
 
+static char *conv_to_window_text(const char *title) {
+  int buf_size = strlen(title) * 2 + 1;
+  char *buf = snewn(buf_size, char);
+  wchar_t *tmp = (wchar_t *)alloca(buf_size * sizeof(wchar_t));
+  MultiByteToWideChar(CP_UTF8, 0, title, -1, tmp, buf_size);
+  WideCharToMultiByte(CP_ACP, 0, tmp, -1, buf, buf_size, NULL, NULL);
+  return buf;
+}
+
 void set_title(void *frontend, char *title)
 {
   sfree(window_name);
-  window_name = snewn(1 + strlen(title), char);
-  strcpy(window_name, title);
+  window_name = conv_to_window_text(title);
   if (conf_get_int(conf, CONF_win_name_always) || !IsIconic(hwnd))
-    SetWindowText(hwnd, title);
+    SetWindowText(hwnd, window_name);
 }
 
 void set_icon(void *frontend, char *title)
 {
   sfree(icon_name);
-  icon_name = snewn(1 + strlen(title), char);
-  strcpy(icon_name, title);
+  icon_name = conv_to_window_text(title);
   if (!conf_get_int(conf, CONF_win_name_always) && IsIconic(hwnd))
-    SetWindowText(hwnd, title);
+    SetWindowText(hwnd, icon_name);
 }
 
 void set_sbar(void *frontend, int total, int start, int page)
