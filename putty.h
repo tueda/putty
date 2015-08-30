@@ -61,7 +61,7 @@ typedef struct terminal_tag Terminal;
 
 #define DATTR_STARTRUN      0x80000000UL   /* start of redraw run */
 
-#define TDATTR_MASK         0xF0000000UL
+#define TDATTR_MASK         0xF0000000ULL
 #define TATTR_MASK (TDATTR_MASK)
 #define DATTR_MASK (TDATTR_MASK)
 
@@ -75,7 +75,7 @@ typedef struct terminal_tag Terminal;
 					  wrapped to next line, so last
 					  single-width cell is empty */
 
-#define ATTR_INVALID 0x03FFFFU
+#define ATTR_INVALID 0x03FFFFUL
 
 /* Like Linux use the F000 page for direct to font. */
 #define CSET_OEMCP   0x0000F000UL      /* OEM Codepage DTF */
@@ -137,10 +137,75 @@ typedef struct terminal_tag Terminal;
 #define ATTR_DEFBG   (258 << ATTR_BGSHIFT)
 #define ATTR_DEFAULT (ATTR_DEFFG | ATTR_DEFBG)
 
+/* Hyperlink */
+#define TATTR_URLMASK	0xFF00000000ULL
+#define TATTR_URLSHIFT	32
+#define TATTR_URLMAX	0xFF
+
+#define IGNORE_CHARS_MAX 8
+
 struct sesslist {
     int nsessions;
     const char **sessions;
     char *buffer;		       /* so memory can be freed later */
+};
+
+struct iso2022struct
+{
+  unsigned char buf[100];
+  int buflen, bufoff;
+  struct g
+  {
+    enum
+    {
+      UNKNOWN, UNSUPPORTED, US_ASCII, JISX0201_ROMAN, JISX0201_KATAKANA,
+      JISC6226_1978, JISX0208_1983, JISX0208_1990, JISX0212_1990,
+      JISX0213_1, JISX0213_2, JISX0213_2004_1, MS_KANJI,
+      GB2312_80, CSIC_SET1, CSIC_SET2, CSIC_SET3, CSIC_SET4, CSIC_SET5,
+      CSIC_SET6, CSIC_SET7, KSC5601_1987, BIG5,
+      ISO8859_1, ISO8859_2, ISO8859_3, ISO8859_4, ISO8859_5,
+      ISO8859_6, ISO8859_7, ISO8859_8, ISO8859_9, ISO8859_10,
+      VT100GRAPHICS,
+      ISO646_1973IRV, BS4730, NATS_PRIMARY_FINLAND_SWEDEN,
+      NATS_PRIMARY_DENMARK_NORWAY, DIN66003, NFZ62010_1973,
+      ISO646_ITALIAN, ISO646_SPANISH,
+      UTF8CJK, UTF8NONCJK,
+    } type;
+    int len;
+  } g0, g1, g2, g3, *gl, *gr, *ssl, *ssr, lgr, *usgr, uslgr;
+  int jisx02081990flag;
+  int esc;
+  int width;
+  int lockgr, uslockgr;
+  int ssgr;
+  int transchar;
+  enum {
+    SWITCH_UTF8_NONE,
+    SWITCH_UTF8_TO_UTF8,
+    SWITCH_UTF8_FROM_UTF8,
+  } switch_utf8;
+  unsigned char *ins;
+  unsigned char *insw;
+  int inslen;
+};
+
+#define AUTODETECT_BUFLEN 10
+
+struct iso2022_data {
+  int win95flag;
+  struct iso2022struct rcv, trns;
+  unsigned char initstring[512];
+  struct {
+    int n;
+    struct {
+      int n;
+      struct iso2022_autodetect_jp {
+	int e;
+	unsigned char buf[AUTODETECT_BUFLEN];
+	int buflen;
+      } eucjp, mskanji, utf8cjk;
+    } jp;
+  } autodetect;
 };
 
 struct unicode_data {
@@ -154,6 +219,8 @@ struct unicode_data {
     wchar_t unitab_xterm[256];
     wchar_t unitab_oemcp[256];
     unsigned char unitab_ctrl[256];
+    int iso2022;
+    struct iso2022_data iso2022_data;
 };
 
 #define LGXF_OVR  1		       /* existing logfile overwrite */
@@ -310,7 +377,7 @@ enum {
     PROT_RAW, PROT_TELNET, PROT_RLOGIN, PROT_SSH,
     /* PROT_SERIAL is supported on a subset of platforms, but it doesn't
      * hurt to define it globally. */
-    PROT_SERIAL
+    PROT_SERIAL, PROT_ADB
 };
 
 enum {
@@ -341,6 +408,17 @@ enum {
 enum {
     FQ_DEFAULT, FQ_ANTIALIASED, FQ_NONANTIALIASED, FQ_CLEARTYPE
 };
+
+/* d2d > */
+enum {
+    RM_DEFAULT, RM_GDI_NATURAL, RM_GDI_CLASSIC, RM_NATURAL,
+    RM_SYMMETRIC, RM_OUTLINE
+};
+
+enum {
+    BS_NORMAL, BS_SQUARE, BS_ROUNDED, BS_GRADATION
+};
+/* < */
 
 enum {
     SER_PAR_NONE, SER_PAR_ODD, SER_PAR_EVEN, SER_PAR_MARK, SER_PAR_SPACE
@@ -413,6 +491,40 @@ enum {
      * the proxy end.
      */
     ADDRTYPE_UNSPEC, ADDRTYPE_IPV4, ADDRTYPE_IPV6, ADDRTYPE_NAME
+};
+
+/* Hyperlink */
+enum {
+    URL_UNDERLINE_ALWAYS, URL_UNDERLINE_HOVER, URL_UNDERLINE_NEVER
+};
+
+/* Background */
+enum {
+    ALPHA_CURSOR, ALPHA_DEFAULT_FG, ALPHA_DEFAULT_BG, ALPHA_BG
+};
+
+enum {
+    BG_NONE, BG_FILE, BG_FILE_DESKTOP, BG_DESKTOP
+};
+
+enum {
+    BG_PLANE, BG_GLASS, BG_DOUBLE_GLASS
+};
+
+enum {
+    BG_ACTIVE, BG_INACTIVE
+};
+
+enum {
+    WP_FILL, WP_FIT, WP_STRETCH, WP_TILE, WP_FIX
+};
+
+enum {
+    WP_LEFT, WP_CENTER, WP_RIGHT
+};
+
+enum {
+    WP_TOP, WP_MIDDLE, WP_BOTTOM
 };
 
 struct backend_tag {
@@ -572,8 +684,8 @@ void free_prompts(prompts_t *p);
  * Exports from the front end.
  */
 void request_resize(void *frontend, int, int);
-void do_text(Context, int, int, wchar_t *, int, unsigned long, int);
-void do_cursor(Context, int, int, wchar_t *, int, unsigned long, int);
+void do_text(Context, int, int, wchar_t *, int, unsigned long long, int);
+void do_cursor(Context, int, int, wchar_t *, int, unsigned long long, int);
 int char_width(Context ctx, int uc);
 #ifdef OPTIMISE_SCROLL
 void do_scroll(Context, int, int, int);
@@ -647,6 +759,9 @@ enum {
     BUSY_CPU	    /* Locally busy (e.g. crypto); user interaction suspended */
 };
 void set_busy_status(void *frontend, int status);
+void reset_colour(void *frontend, int number);
+void set_colour(void *frontend, int number, int colour);
+int get_colour(void *frontend, int number);
 
 void cleanup_exit(int);
 
@@ -789,6 +904,8 @@ void cleanup_exit(int);
     X(STR, NONE, printer) \
     X(INT, NONE, arabicshaping) \
     X(INT, NONE, bidi) \
+    X(INT, NONE, clip_modify) \
+    X(INT, NONE, clip_query) \
     /* Colour options */ \
     X(INT, NONE, ansi_colour) \
     X(INT, NONE, xterm_256_colour) \
@@ -868,13 +985,66 @@ void cleanup_exit(int);
     X(INT, NONE, shadowboldoffset) \
     X(INT, NONE, crhaslf) \
     X(STR, NONE, winclass) \
+    /* HACK: PuttyTray / Reconnect */ \
+    X(INT, NONE, wakeup_reconnect) \
+    X(INT, NONE, failure_reconnect) \
+    /* gotta ni */ \
+    X(INT, NONE, alt_metabit) /* set meta instead of escape */ \
+    X(INT, NONE, ctrl_tab_switch) /* switch PuTTY windows with CtrlTab */ \
+    X(INT, NONE, rightaltkey) \
+    X(INT, NONE, use_5casis) /* U+005C */ \
+    X(FILENAME, NONE, iconfile) \
+    /* iceiv */ \
+    X(STR, STR, pvkey_str) \
+    X(INT, NONE, x) \
+    X(INT, NONE, y) \
+    X(STR, NONE, ignore_chars) \
+    /* Hyperlink */ \
+    X(INT, NONE, url_enable) \
+    X(INT, NONE, url_underline) \
+    X(INT, NONE, url_ctrl_click) \
+    /* Background */ \
+    X(INT, NONE, alphas_pc_cursor_active) \
+    X(INT, NONE, alphas_pc_cursor_inactive) \
+    X(INT, NONE, alphas_pc_defauly_fg_active) \
+    X(INT, NONE, alphas_pc_defauly_fg_inactive) \
+    X(INT, NONE, alphas_pc_degault_bg_active) \
+    X(INT, NONE, alphas_pc_degault_bg_inactive) \
+    X(INT, NONE, alphas_pc_bg_active) \
+    X(INT, NONE, alphas_pc_bg_inactive) \
+    X(INT, NONE, bg_wallpaper) \
+    X(INT, NONE, bg_effect) \
+    X(FILENAME, NONE, wp_file) \
+    X(INT, NONE, wp_position) \
+    X(INT, NONE, wp_align) \
+    X(INT, NONE, wp_valign) \
+    X(INT, NONE, wp_moving) \
+    /* ADB */ \
+    X(STR, NONE, adb_transport) \
+    X(INT, NONE, adb_start) \
+    X(INT, NONE, adb_kill) \
+    /* d2d */ \
+    X(INT, NONE, rendering_mode) \
+    X(INT, NONE, border_style) \
+    X(INT, NONE, fps) \
+    X(INT, NONE, line_gap) \
+    X(INT, NONE, baseline_offset) \
+    X(INT, NONE, baseline_offset_fw) \
+    X(INT, NONE, font_stretch) \
+    X(INT, NONE, use_widefont) \
+    X(FONT, NONE, altfont) \
+    X(INT, NONE, use_altfont) \
+    X(INT, NONE, gamma) \
+    X(INT, NONE, enhanced_contrast) \
+    X(INT, NONE, cleartype_level) \
+    X(INT, NONE, d2dbug_resize) \
 
 /* Now define the actual enum of option keywords using that macro. */
 #define CONF_ENUM_DEF(valtype, keytype, keyword) CONF_ ## keyword,
 enum config_primary_key { CONFIG_OPTIONS(CONF_ENUM_DEF) N_CONFIG_OPTIONS };
 #undef CONF_ENUM_DEF
 
-#define NCFGCOLOURS 22 /* number of colours in CONF_colours above */
+#define NCFGCOLOURS 24 /* number of colours in CONF_colours above */
 
 /* Functions handling configuration structures. */
 Conf *conf_new(void);		       /* create an empty configuration */
@@ -1061,6 +1231,11 @@ extern Backend telnet_backend;
  * Exports from ssh.c.
  */
 extern Backend ssh_backend;
+
+/*
+ * Exports from adb.c.
+ */
+extern Backend adb_backend;
 
 /*
  * Exports from ldisc.c.
@@ -1318,6 +1493,7 @@ int filename_serialise(const Filename *f, void *data);
 Filename *filename_deserialise(void *data, int maxsize, int *used);
 char *get_username(void);	       /* return value needs freeing */
 char *get_random_data(int bytes);      /* used in cmdgen.c */
+void exec_browser(char *url);
 
 /*
  * Exports and imports from timing.c.
@@ -1483,4 +1659,49 @@ void request_callback_notifications(toplevel_callback_notify_fn_t notify,
 #define FROM_SURROGATES(wch1, wch2) \
     (0x10000 + (((wch1) & 0x3FF) << 10) + ((wch2) & 0x3FF))
 
+/*
+ * Exports from iso2022.c
+ */
+int iso2022_init (struct iso2022_data *thiss, char *p, int mode);
+int iso2022_init_test (char *p);
+void iso2022_transmit (struct iso2022_data *thiss, unsigned char c);
+void iso2022_put (struct iso2022_data *thiss, unsigned char c);
+void iso2022_clearesc (struct iso2022_data *thiss);
+int iso2022_width_sub (struct iso2022_data *thiss, wchar_t);
+unsigned char iso2022_tgetbuf (struct iso2022_data *thiss);
+unsigned char iso2022_getbuf (struct iso2022_data *thiss);
+void iso2022_settranschar (struct iso2022_data *thiss, int value);
+void iso2022_tbufclear (struct iso2022_data *thiss);
+int iso2022_tbuflen (struct iso2022_data *thiss);
+int iso2022_buflen (struct iso2022_data *thiss);
+void iso2022_autodetect_put (struct iso2022_data *thiss, unsigned char *buf,
+			     int nchars);
+
+static __inline int
+iso2022_width (struct iso2022_data *thiss, wchar_t c)
+{
+  int width;
+
+  width = iso2022_width_sub (thiss, c);
+  switch (width)
+    {
+    case -1:
+      return mk_wcwidth_cjk (c);
+    case -2:
+      return mk_wcwidth (c);
+    default:
+      return width;
+    }
+}
+
+/*
+ * Exports from winl10n.c/uxl10n.c
+ */
+char *l10n_dupstr (char *);
+int get_l10n_setting(const char* keyname, char* buf, int size);
+
+#endif
+
+#ifndef CW_USEDEFAULT
+#define CW_USEDEFAULT ((int)0)
 #endif

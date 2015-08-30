@@ -183,7 +183,8 @@ foreach $i (@prognames) {
       $depends{$j} = [$file];
       push @scanlist, $file;
     } elsif ($j !~ /\./) {
-      $file = "$j.c";
+      $file = "$j.cpp";
+      $file = "$j.c" unless &findfile($file);
       $file = "$j.m" unless &findfile($file);
       $depends{$j} = [$file];
       push @scanlist, $file;
@@ -459,7 +460,7 @@ if (defined $makefiles{'cygwin'}) {
 	       "\n".
     "LDFLAGS = -mno-cygwin -s\n".
     &splitline("RCFLAGS = \$(RCINC) --define WIN32=1 --define _WIN32=1 ".
-      "--define WINVER=0x0400 ".(join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
+      "--define WINVER=0x0600 ".(join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
     "\n".
     &def($makefile_extra{'cygwin'}->{'vars'}) .
     "\n".
@@ -531,9 +532,9 @@ if (defined $makefiles{'borland'}) {
     "MAKEFILE = Makefile.bor\n".
     "\n".
     "# C compilation flags\n".
-    "CFLAGS = -D_WINDOWS -DWINVER=0x0500\n".
+    "CFLAGS = -D_WINDOWS -DWINVER=0x0600\n".
     "# Resource compilation flags\n".
-    "RCFLAGS = -DNO_WINRESRC_H -DWIN32 -D_WIN32 -DWINVER=0x0401\n".
+    "RCFLAGS = -DNO_WINRESRC_H -DWIN32 -D_WIN32 -DWINVER=0x0600\n".
     "\n".
     "# Get include directory for resource compiler\n".
     "!if !\$d(BCB)\n".
@@ -634,10 +635,10 @@ if (defined $makefiles{'vc'}) {
       "# C compilation flags\n".
       "CFLAGS = /nologo /W3 /O1 " .
       (join " ", map {"-I$dirpfx$_"} @srcdirs) .
-      " /D_WINDOWS /D_WIN32_WINDOWS=0x500 /DWINVER=0x500\n".
+      " /D_WINDOWS /D_WIN32_WINDOWS=0x600 /DWINVER=0x600\n".
       "LFLAGS = /incremental:no /fixed\n".
       "RCFLAGS = ".(join " ", map {"-I$dirpfx$_"} @srcdirs).
-      " -DWIN32 -D_WIN32 -DWINVER=0x0400\n".
+      " -DWIN32 -D_WIN32 -DWINVER=0x0600\n".
       "\n".
       &def($makefile_extra{'vc'}->{'vars'}) .
       "\n".
@@ -698,6 +699,9 @@ if (defined $makefiles{'vc'}) {
       "\t-del *.plg\n".
       "\t-del *.map\n".
       "\t-del *.idb\n".
+      "\t-del *.pgc\n".
+      "\t-del *.pgd\n".
+      "\t-del *.rnd\n".
       "\t-del debug.log\n";
     select STDOUT; close OUT;
 }

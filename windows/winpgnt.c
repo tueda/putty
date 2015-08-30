@@ -1189,20 +1189,20 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     systray_menu = CreatePopupMenu();
     if (putty_path) {
 	session_menu = CreateMenu();
-	AppendMenu(systray_menu, MF_ENABLED, IDM_PUTTY, "&New Session");
-	AppendMenu(systray_menu, MF_POPUP | MF_ENABLED,
+	l10nAppendMenu(systray_menu, MF_ENABLED, IDM_PUTTY, "&New Session");
+	l10nAppendMenu(systray_menu, MF_POPUP | MF_ENABLED,
 		   (UINT_PTR) session_menu, "&Saved Sessions");
 	AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
     }
-    AppendMenu(systray_menu, MF_ENABLED, IDM_VIEWKEYS,
+    l10nAppendMenu(systray_menu, MF_ENABLED, IDM_VIEWKEYS,
 	   "&View Keys");
-    AppendMenu(systray_menu, MF_ENABLED, IDM_ADDKEY, "Add &Key");
+    l10nAppendMenu(systray_menu, MF_ENABLED, IDM_ADDKEY, "Add &Key");
     AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
     if (has_help())
-	AppendMenu(systray_menu, MF_ENABLED, IDM_HELP, "&Help");
-    AppendMenu(systray_menu, MF_ENABLED, IDM_ABOUT, "&About");
+	l10nAppendMenu(systray_menu, MF_ENABLED, IDM_HELP, "&Help");
+    l10nAppendMenu(systray_menu, MF_ENABLED, IDM_ABOUT, "&About");
     AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
-    AppendMenu(systray_menu, MF_ENABLED, IDM_CLOSE, "E&xit");
+    l10nAppendMenu(systray_menu, MF_ENABLED, IDM_CLOSE, "E&xit");
     initial_menuitems_count = GetMenuItemCount(session_menu);
 
     /* Set the default menu item. */

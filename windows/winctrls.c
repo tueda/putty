@@ -22,28 +22,30 @@
 
 #include <commctrl.h>
 
+#include <wchar.h>
+
 #define GAPBETWEEN 3
 #define GAPWITHIN 1
 #define GAPXBOX 7
 #define GAPYBOX 4
 #define DLGWIDTH 168
-#define STATICHEIGHT 8
-#define TITLEHEIGHT 12
-#define CHECKBOXHEIGHT 8
-#define RADIOHEIGHT 8
-#define EDITHEIGHT 12
-#define LISTHEIGHT 11
+#define STATICHEIGHT (8+1)
+#define TITLEHEIGHT (12+1)
+#define CHECKBOXHEIGHT (8+1)
+#define RADIOHEIGHT (8+1)
+#define EDITHEIGHT (12+1)
+#define LISTHEIGHT (11+1)
 #define LISTINCREMENT 8
-#define COMBOHEIGHT 12
-#define PUSHBTNHEIGHT 14
-#define PROGBARHEIGHT 14
+#define COMBOHEIGHT (12+1)
+#define PUSHBTNHEIGHT (14+1)
+#define PROGBARHEIGHT (14+1)
 
 void ctlposinit(struct ctlpos *cp, HWND hwnd,
 		int leftborder, int rightborder, int topborder)
 {
     RECT r, r2;
     cp->hwnd = hwnd;
-    cp->font = SendMessage(hwnd, WM_GETFONT, 0, 0);
+    cp->font = l10n_getfont (SendMessage(hwnd, WM_GETFONT, 0, 0));
     cp->ypos = topborder;
     GetClientRect(hwnd, &r);
     r2.left = r2.top = 0;
@@ -192,7 +194,7 @@ void combobox(struct ctlpos *cp, char *text, int staticid, int listid)
     r.top = cp->ypos;
     r.bottom = COMBOHEIGHT * 10;
     doctl(cp, r, "COMBOBOX",
-	  WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL |
+	  WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_AUTOHSCROLL |
 	  CBS_DROPDOWN | CBS_HASSTRINGS, WS_EX_CLIENTEDGE, "", listid);
     cp->ypos += COMBOHEIGHT + GAPBETWEEN;
 }
@@ -1164,27 +1166,54 @@ void progressbar(struct ctlpos *cp, int id)
  */
 static char *shortcut_escape(const char *text, char shortcut)
 {
+	int text_len;
     char *ret;
     char const *p;
     char *q;
+    char *r, lastchar = '\0';
+    int search;
 
     if (!text)
 	return NULL;		       /* sfree won't choke on this */
 
-    ret = snewn(2*strlen(text)+1, char);   /* size potentially doubles! */
+	text_len = strlen(text);
+	ret = snewn(text_len > 4 ? 2*text_len+1 : text_len + 5, char);   /* size potentially doubles! */
     shortcut = tolower((unsigned char)shortcut);
 
     p = text;
+    search = 1;
+    while (*p) {
+	 r = CharNext (p);
+	 if (r - p > 1) {
+	      search = 0;
+	      break;
+	 }
+	 p = r;
+    }
+    p = text;
     q = ret;
     while (*p) {
-	if (shortcut != NO_SHORTCUT &&
+	if (search && shortcut != NO_SHORTCUT &&
 	    tolower((unsigned char)*p) == shortcut) {
 	    *q++ = '&';
 	    shortcut = NO_SHORTCUT;    /* stop it happening twice */
 	} else if (*p == '&') {
 	    *q++ = '&';
 	}
-	*q++ = *p++;
+	lastchar = *p;
+	r = CharNext (p);
+	while (p != r)
+	     *q++ = *p++;
+    }
+    if (shortcut != NO_SHORTCUT) { /* Japanese style shortcut */
+	 if (lastchar == ':')
+	      q--;
+	 *q++ = '(';
+	 *q++ = '&';
+	 *q++ = toupper(shortcut);
+	 *q++ = ')';
+	 if (lastchar == ':')
+	      *q++ = lastchar;
     }
     *q = '\0';
     return ret;
@@ -1628,8 +1657,14 @@ void winctrl_layout(struct dlgparam *dp, struct winctrls *wc,
 	    escaped = shortcut_escape(ctrl->fileselect.label,
 				      ctrl->fileselect.shortcut);
 	    shortcuts[nshortcuts++] = ctrl->fileselect.shortcut;
+	    {
+	      char *browse;
+
+	      browse = l10n_dupstr ("Bro&wse...");
 	    editbutton(&pos, escaped, base_id, base_id+1,
-		       "Bro&wse...", base_id+2);
+		       browse, base_id+2);
+	      sfree (browse);
+	    }
 	    shortcuts[nshortcuts++] = 'w';
 	    sfree(escaped);
 	    break;
@@ -1639,7 +1674,12 @@ void winctrl_layout(struct dlgparam *dp, struct winctrls *wc,
 				      ctrl->fontselect.shortcut);
 	    shortcuts[nshortcuts++] = ctrl->fontselect.shortcut;
 	    statictext(&pos, escaped, 1, base_id);
-	    staticbtn(&pos, "", base_id+1, "Change...", base_id+2);
+	    {
+		char *change;
+		change = l10n_dupstr ("Change...");
+		staticbtn(&pos, "", base_id+1, change, base_id+2);
+		sfree (change);
+	    }
             data = fontspec_new("", 0, 0, 0);
 	    sfree(escaped);
 	    break;
@@ -1938,6 +1978,7 @@ int winctrl_handle_command(struct dlgparam *dp, UINT msg,
 	    LOGFONT lf;
 	    HDC hdc;
 	    FontSpec *fs = (FontSpec *)c->data;
+	    WCHAR wname[64];
 
 	    hdc = GetDC(0);
 	    lf.lfHeight = -MulDiv(fs->height,
@@ -1951,9 +1992,10 @@ int winctrl_handle_command(struct dlgparam *dp, UINT msg,
 	    lf.lfClipPrecision = CLIP_DEFAULT_PRECIS;
 	    lf.lfQuality = DEFAULT_QUALITY;
 	    lf.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;
-	    strncpy(lf.lfFaceName, fs->name,
-		    sizeof(lf.lfFaceName) - 1);
-	    lf.lfFaceName[sizeof(lf.lfFaceName) - 1] = '\0';
+
+	    MultiByteToWideChar(CP_UTF8, 0, fs->name, -1, wname, 63);
+	    wname[63] = '\0';
+	    WideCharToMultiByte(CP_ACP, 0, wname, -1, lf.lfFaceName, 64, NULL, NULL);
 
 	    cf.lStructSize = sizeof(cf);
 	    cf.hwndOwner = dp->hwnd;
@@ -1962,7 +2004,11 @@ int winctrl_handle_command(struct dlgparam *dp, UINT msg,
                 CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT | CF_SCREENFONTS;
 
 	    if (ChooseFont(&cf)) {
-                fs = fontspec_new(lf.lfFaceName, (lf.lfWeight == FW_BOLD),
+		char uname[256];
+		MultiByteToWideChar(CP_ACP, 0, lf.lfFaceName, -1, wname, 63);
+		wname[63] = '\0';
+		WideCharToMultiByte(CP_UTF8, 0, wname, -1, (LPSTR)uname, 64, NULL, NULL);
+                fs = fontspec_new(uname, (lf.lfWeight == FW_BOLD),
                                   cf.iPointSize / 10, lf.lfCharSet);
 		dlg_fontsel_set(ctrl, dp, fs);
                 fontspec_free(fs);
@@ -2097,16 +2143,38 @@ void dlg_editbox_set(union control *ctrl, void *dlg, char const *text)
 {
     struct dlgparam *dp = (struct dlgparam *)dlg;
     struct winctrl *c = dlg_findbyctrl(dp, ctrl);
+
+    int len = MultiByteToWideChar(CP_UTF8, 0, text, -1, NULL, 0);
+    wchar_t *wtext = snewn(len, wchar_t);
+    MultiByteToWideChar(CP_UTF8, 0, text, -1, wtext, len);
+
     assert(c && c->ctrl->generic.type == CTRL_EDITBOX);
-    SetDlgItemText(dp->hwnd, c->base_id+1, text);
+    SetDlgItemTextW(dp->hwnd, c->base_id+1, wtext);
+
+    sfree(wtext);
 }
 
 char *dlg_editbox_get(union control *ctrl, void *dlg)
 {
     struct dlgparam *dp = (struct dlgparam *)dlg;
     struct winctrl *c = dlg_findbyctrl(dp, ctrl);
+
+    wchar_t *wbuffer = NULL;
+    char *buffer = NULL;
+    int size = 0;
+
     assert(c && c->ctrl->generic.type == CTRL_EDITBOX);
-    return GetDlgItemText_alloc(dp->hwnd, c->base_id+1);
+
+    do {
+      size = size * 4 / 3 + 512;
+      wbuffer = sresize(wbuffer, size, wchar_t);
+      GetDlgItemTextW(dp->hwnd, c->base_id+1, wbuffer, size);
+    } while (!wmemchr(wbuffer, '\0', size-1));
+    buffer = snewn(size * 4, char);
+    WideCharToMultiByte(CP_UTF8, 0, wbuffer, -1, buffer, size * 4, 0, 0);
+    sfree(wbuffer);
+
+    return buffer;
 }
 
 /* The `listbox' functions can also apply to combo boxes. */
@@ -2143,13 +2211,23 @@ void dlg_listbox_add(union control *ctrl, void *dlg, char const *text)
     struct dlgparam *dp = (struct dlgparam *)dlg;
     struct winctrl *c = dlg_findbyctrl(dp, ctrl);
     int msg;
+
+    int len = MultiByteToWideChar(CP_UTF8, 0, text, -1, NULL, 0);
+    wchar_t *wtext = snewn(len, wchar_t);
+    char *ctext = snewn(len * 4, char);
+    MultiByteToWideChar(CP_UTF8, 0, text, -1, wtext, len);
+    WideCharToMultiByte(CP_ACP, 0, wtext, -1, ctext, len * 4, NULL, NULL);
+
     assert(c &&
 	   (c->ctrl->generic.type == CTRL_LISTBOX ||
 	    (c->ctrl->generic.type == CTRL_EDITBOX &&
 	     c->ctrl->editbox.has_list)));
     msg = (c->ctrl->generic.type==CTRL_LISTBOX && c->ctrl->listbox.height!=0 ?
 	   LB_ADDSTRING : CB_ADDSTRING);
-    SendDlgItemMessage(dp->hwnd, c->base_id+1, msg, 0, (LPARAM)text);
+    SendDlgItemMessage(dp->hwnd, c->base_id+1, msg, 0, ctext);
+
+    sfree(wtext);
+    sfree(ctext);
 }
 
 /*
@@ -2239,12 +2317,13 @@ void dlg_text_set(union control *ctrl, void *dlg, char const *text)
     SetDlgItemText(dp->hwnd, c->base_id, text);
 }
 
-void dlg_label_change(union control *ctrl, void *dlg, char const *text)
+void dlg_label_change(union control *ctrl, void *dlg, char const *text2)
 {
     struct dlgparam *dp = (struct dlgparam *)dlg;
     struct winctrl *c = dlg_findbyctrl(dp, ctrl);
     char *escaped = NULL;
     int id = -1;
+    char *text = l10n_dupstr (text2);
 
     assert(c);
     switch (c->ctrl->generic.type) {
@@ -2284,6 +2363,7 @@ void dlg_label_change(union control *ctrl, void *dlg, char const *text)
 	SetDlgItemText(dp->hwnd, id, escaped);
 	sfree(escaped);
     }
+    sfree (text);
 }
 
 void dlg_filesel_set(union control *ctrl, void *dlg, Filename *fn)
@@ -2312,6 +2392,11 @@ void dlg_fontsel_set(union control *ctrl, void *dlg, FontSpec *fs)
     char *buf, *boldstr;
     struct dlgparam *dp = (struct dlgparam *)dlg;
     struct winctrl *c = dlg_findbyctrl(dp, ctrl);
+    char wname[128];
+    char mname[64];
+    MultiByteToWideChar(CP_UTF8, 0, fs->name, -1, (LPWSTR)wname, 63);
+    WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)wname, -1, mname, 63, NULL, NULL);
+
     assert(c && c->ctrl->generic.type == CTRL_FONTSELECT);
 
     fontspec_free((FontSpec *)c->data);
@@ -2319,9 +2404,9 @@ void dlg_fontsel_set(union control *ctrl, void *dlg, FontSpec *fs)
 
     boldstr = (fs->isbold ? "bold, " : "");
     if (fs->height == 0)
-	buf = dupprintf("Font: %s, %sdefault height", fs->name, boldstr);
+	buf = dupprintf("Font: %s, %sdefault height", mname, boldstr);
     else
-	buf = dupprintf("Font: %s, %s%d-%s", fs->name, boldstr,
+	buf = dupprintf("Font: %s, %s%d-%s", mname, boldstr,
 			(fs->height < 0 ? -fs->height : fs->height),
 			(fs->height < 0 ? "pixel" : "point"));
     SetDlgItemText(dp->hwnd, c->base_id+1, buf);
@@ -2540,7 +2625,7 @@ void dp_init(struct dlgparam *dp)
     memset(dp->shortcuts, 0, sizeof(dp->shortcuts));
     dp->hwnd = NULL;
     dp->wintitle = dp->errtitle = NULL;
-    dp->fixed_pitch_fonts = TRUE;
+    dp->fixed_pitch_fonts = FALSE;
 }
 
 void dp_add_tree(struct dlgparam *dp, struct winctrls *wc)
