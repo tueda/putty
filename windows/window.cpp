@@ -509,6 +509,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
   hwnd = NULL;
   flags = FLAG_VERBOSE | FLAG_INTERACTIVE;
 
+  HICON hiconLarge = NULL;
+  HICON hiconSmall = NULL;
+
   sk_init();
 
   InitCommonControls();
@@ -833,8 +836,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
   if (!prev) {
     char *iconfile_path = conf_get_filename(conf, CONF_iconfile)->path;
-    WNDCLASSW wndclass;
+    WNDCLASSEXW wndclass;
 
+    wndclass.cbSize = sizeof(wndclass);
     wndclass.style = 0;
     wndclass.lpfnWndProc = WndProc;
     wndclass.cbClsExtra = 0;
@@ -843,6 +847,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
       wndclass.cbWndExtra += 8;
     wndclass.hInstance = inst;
     wndclass.hIcon = NULL;
+    wndclass.hIconSm = NULL;
     if (iconfile_path != NULL && strlen(iconfile_path) != 0) {
       char *buffer = dupstr(iconfile_path);
       char *comma;
@@ -853,6 +858,10 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
         index = atoi(comma + 1);
       }
       wndclass.hIcon = ExtractIcon(inst, buffer, index);
+      if (ExtractIconEx(buffer, index, &hiconLarge, &hiconSmall, 1)) {
+        wndclass.hIcon   = hiconLarge ? hiconLarge : hiconSmall;
+        wndclass.hIconSm = hiconSmall ? hiconSmall : hiconLarge;
+      }
       sfree(buffer);
     }
     if (wndclass.hIcon == NULL)
@@ -862,7 +871,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     wndclass.lpszMenuName = NULL;
     wndclass.lpszClassName = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, appname);
 
-    RegisterClassW(&wndclass);
+    RegisterClassExW(&wndclass);
   }
 
   memset(&ucsdata, 0, sizeof(ucsdata));
@@ -1140,6 +1149,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
   }
 
  finished:
+  if (hiconLarge) DestroyIcon(hiconLarge);
+  if (hiconSmall) DestroyIcon(hiconSmall);
   cleanup_exit(msg.wParam);       /* this doesn't return... */
   return msg.wParam;       /* ... but optimiser doesn't know */
 }
