@@ -41,11 +41,11 @@ void notify_remote_exit(void *frontend)
 {
 }
 
-void timer_change_notify(long next)
+void timer_change_notify(unsigned long next)
 {
 }
 
-int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
+int verify_ssh_host_key(void *frontend, char *host, int port, const char *keytype,
                         char *keystr, char *fingerprint,
                         void (*callback)(void *ctx, int result), void *ctx)
 {
@@ -111,7 +111,7 @@ int askalg(void *frontend, const char *algtype, const char *algname,
  * Ask whether to wipe a session log file before writing to it.
  * Returns 2 for wipe, 1 for append, 0 for cancel (don't log).
  */
-int askappend(void *frontend, Filename filename,
+int askappend(void *frontend, Filename *filename,
              void (*callback)(void *ctx, int result), void *ctx)
 {
     return 0;

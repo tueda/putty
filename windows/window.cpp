@@ -250,7 +250,10 @@ static char ime_m[512];
 #include <d2d1helper.h>
 #include <dwrite.h>
 #include <wincodec.h>
+#ifdef __MINGW32__
+#else
 #include <wincodecsdk.h>
+#endif
 #include <Wtsapi32.h>
 
 static void bg_create();
@@ -285,8 +288,8 @@ static ID2D1SolidColorBrush *d2dSCBfg = NULL;
 static ID2D1SolidColorBrush *d2dSCBbg = NULL;
 static ID2D1SolidColorBrush *d2dSCBc = NULL;
 
-static enum { FF_NORMAL, FF_WIDE, FF_ALT };
-static enum { FF_BOLD = 1 };
+enum { FF_NORMAL, FF_WIDE, FF_ALT };
+enum { FF_BOLD = 1 };
 
 static IDWriteFontFace *dwFF[3][2] = { NULL, NULL, NULL, NULL, NULL, NULL };
 
@@ -1015,7 +1018,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
       AppendMenu(m, MF_SEPARATOR, 0, 0);
       AppendMenu(m, MF_ENABLED, IDM_NEWSESS, "Ne&w Session...");
       AppendMenu(m, MF_ENABLED, IDM_DUPSESS, "&Duplicate Session");
-      AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT) savedsess_menu,
+      AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT_PTR) savedsess_menu,
                  "Sa&ved Sessions");
       AppendMenu(m, MF_ENABLED, IDM_RECONF, "Chan&ge Settings...");
       AppendMenu(m, MF_SEPARATOR, 0, 0);
@@ -1223,7 +1226,7 @@ static void update_savedsess_menu(void)
 void update_specials_menu(void *frontend)
 {
   HMENU new_menu;
-  int i, j;
+  int i, j, k;
 
   if (back)
     specials = back->get_specials(backhandle);
@@ -1248,7 +1251,7 @@ void update_specials_menu(void *frontend)
         saved_menu = new_menu;  /* XXX lame stacking */
         new_menu = CreatePopupMenu();
         AppendMenu(saved_menu, MF_POPUP | MF_ENABLED,
-                   (UINT) new_menu, specials[i].name);
+                   (UINT_PTR) new_menu, specials[i].name);
         break;
       case TS_EXITMENU:
         nesting--;
@@ -1273,13 +1276,18 @@ void update_specials_menu(void *frontend)
   for (j = 0; j < lenof(popup_menus); j++) {
     if (specials_menu) {
       /* XXX does this free up all submenus? */
-      DeleteMenu(popup_menus[j].menu, (UINT) specials_menu, MF_BYCOMMAND);
+      for (k = GetMenuItemCount(popup_menus[j].menu) - 1; k >= 0; k--) {
+        if (GetMenuItemID(popup_menus[j].menu, k) == IDM_SPECIALSEP) {
+          DeleteMenu(popup_menus[j].menu, k - 1, MF_BYPOSITION);
+          break;
+        }
+      }
       DeleteMenu(popup_menus[j].menu, IDM_SPECIALSEP, MF_BYCOMMAND);
     }
     if (new_menu) {
       InsertMenu(popup_menus[j].menu, IDM_SHOWLOG,
                  MF_BYCOMMAND | MF_POPUP | MF_ENABLED,
-                 (UINT) new_menu, "S&pecial Command");
+                 (UINT_PTR) new_menu, "S&pecial Command");
       InsertMenu(popup_menus[j].menu, IDM_SHOWLOG,
                  MF_BYCOMMAND | MF_SEPARATOR, IDM_SPECIALSEP, 0);
     }
@@ -1478,7 +1486,7 @@ static void systopalette(void)
     int nIndex;
     int norm;
     int bold;
-  } or[] = {
+  } or_[] = {
     {
     COLOR_WINDOWTEXT, 256, 257},        /* Default Foreground */
     {
@@ -1493,14 +1501,14 @@ static void systopalette(void)
     COLOR_HIGHLIGHT, 263, 263}, /* Cursor Colour(IME ON) */
   };
 
-  for (i = 0; i < (sizeof(or) / sizeof(or[0])); i++) {
-    COLORREF colour = GetSysColor(or[i].nIndex);
-    defpal[or[i].norm].rgbtRed =
-      defpal[or[i].bold].rgbtRed = GetRValue(colour);
-    defpal[or[i].norm].rgbtGreen =
-      defpal[or[i].bold].rgbtGreen = GetGValue(colour);
-    defpal[or[i].norm].rgbtBlue =
-      defpal[or[i].bold].rgbtBlue = GetBValue(colour);
+  for (i = 0; i < (sizeof(or_) / sizeof(or_[0])); i++) {
+    COLORREF colour = GetSysColor(or_[i].nIndex);
+    defpal[or_[i].norm].rgbtRed =
+      defpal[or_[i].bold].rgbtRed = GetRValue(colour);
+    defpal[or_[i].norm].rgbtGreen =
+      defpal[or_[i].bold].rgbtGreen = GetGValue(colour);
+    defpal[or_[i].norm].rgbtBlue =
+      defpal[or_[i].bold].rgbtBlue = GetBValue(colour);
   }
 }
 

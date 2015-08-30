@@ -447,18 +447,19 @@ if (defined $makefiles{'cygwin'}) {
     "# TOOLPATH = c:\\cygwin\\bin\\ # or similar, if you're running Windows\n".
     "# TOOLPATH = /pkg/mingw32msvc/i386-mingw32msvc/bin/\n".
     "CC = \$(TOOLPATH)gcc\n".
+    "CXX = \$(TOOLPATH)g++\n".
     "RC = \$(TOOLPATH)windres\n".
     "# Uncomment the following two lines to compile under Winelib\n".
     "# CC = winegcc\n".
+    "# CXX = wineg++\n".
     "# RC = wrc\n".
     "# You may also need to tell windres where to find include files:\n".
     "# RCINC = --include-dir c:\\cygwin\\include\\\n".
     "\n".
-    &splitline("CFLAGS = -mno-cygwin -Wall -O2 -D_WINDOWS -DDEBUG -DWIN32S_COMPAT".
-      " -D_NO_OLDNAMES -DNO_MULTIMON -DNO_HTMLHELP -DNO_SECUREZEROMEMORY " .
+    &splitline("CFLAGS = -Wall -O2 -D_WINDOWS -DDEBUG -D_NO_OLDNAMES -DNO_MULTIMON " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs)) .
 	       "\n".
-    "LDFLAGS = -mno-cygwin -s\n".
+    "LDFLAGS = -s -static -static-libgcc -static-libstdc++\n".
     &splitline("RCFLAGS = \$(RCINC) --define WIN32=1 --define _WIN32=1 ".
       "--define WINVER=0x0600 ".(join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
     "\n".
@@ -474,7 +475,7 @@ if (defined $makefiles{'cygwin'}) {
       print &splitline($prog . ".exe: " . $objstr), "\n";
       my $mw = $type eq "G" ? " -mwindows" : "";
       $libstr = &objects($p, undef, undef, "-lX");
-      print &splitline("\t\$(CC)" . $mw . " \$(LDFLAGS) -o \$@ " .
+      print &splitline("\t\$(CXX)" . $mw . " \$(LDFLAGS) -o \$@ " .
                        "-Wl,-Map,$prog.map " .
                        $objstr . " $libstr", 69), "\n\n";
     }
@@ -487,6 +488,8 @@ if (defined $makefiles{'cygwin'}) {
       }
       if ($d->{obj} =~ /\.res\.o$/) {
 	  print "\t\$(RC) \$(RCFL) \$(RCFLAGS) ".$d->{deps}->[0]." -o ".$d->{obj}."\n\n";
+      } elsif ($d->{obj_orig} =~ /\.cpp$/) {
+	  print "\t\$(CXX) \$(COMPAT) \$(CFLAGS) \$(XFLAGS) -c ".$d->{deps}->[0]."\n\n";
       } else {
 	  print "\t\$(CC) \$(COMPAT) \$(CFLAGS) \$(XFLAGS) -c ".$d->{deps}->[0]."\n\n";
       }
