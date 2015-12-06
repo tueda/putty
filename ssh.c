@@ -11031,6 +11031,7 @@ static const char *ssh_init(void *frontend_handle, void **backend_handle,
     ssh->protocol_initial_phase_done = FALSE;
 
     ssh->pinger = NULL;
+    ssh->fullhostname = NULL;
 
     ssh->incoming_data_size = ssh->outgoing_data_size =
 	ssh->deferred_data_size = 0L;
@@ -11042,7 +11043,7 @@ static const char *ssh_init(void *frontend_handle, void **backend_handle,
     ssh->gsslibs = NULL;
 #endif
 
-    random_ref(); /* do this now - may be needed by sharing setup code */
+    random_ref();
 
     p = connect_to_host(ssh, host, port, realhost, nodelay, keepalive);
     if (p != NULL) {
