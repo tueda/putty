@@ -61,11 +61,11 @@ void notify_remote_exit(void *frontend)
     notify_exited();
 }
 
-void timer_change_notify(long next)
+void timer_change_notify(unsigned long next)
 {
 }
 
-int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
+int verify_ssh_host_key(void *frontend, char *host, int port, const char *keytype,
                         char *keystr, char *fingerprint,
                         void (*callback)(void *ctx, int result), void *ctx)
 {
@@ -201,7 +201,7 @@ int askalg(void *frontend, const char *algtype, const char *algname,
  * Ask whether to wipe a session log file before writing to it.
  * Returns 2 for wipe, 1 for append, 0 for cancel (don't log).
  */
-int askappend(void *frontend, Filename filename,
+int askappend(void *frontend, Filename *filename,
 	      void (*callback)(void *ctx, int result), void *ctx)
 {
     static const char msgtemplate[] =
@@ -221,10 +221,10 @@ int askappend(void *frontend, Filename filename,
     int mbret;
 
     if (console_batch_mode) {
-	mboxprintf(MB_ICONERROR | MB_OK, mbtitle, msgtemplate_batch, FILENAME_MAX, filename.path);
+	mboxprintf(MB_ICONERROR | MB_OK, mbtitle, msgtemplate_batch, FILENAME_MAX, filename->path);
 	return 0;
     }
-    mbret = mboxprintf(MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3, mbtitle, msgtemplate, FILENAME_MAX, filename.path);
+    mbret = mboxprintf(MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3, mbtitle, msgtemplate, FILENAME_MAX, filename->path);
 
     if (mbret == IDYES)
 	return 2;
@@ -412,7 +412,7 @@ BOOL CALLBACK getline_dialog_proc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM
     return FALSE;
 }
 
-int console_get_userpass_input(prompts_t *p, unsigned char *in, int inlen)
+int console_get_userpass_input(prompts_t *p, const unsigned char *in, int inlen)
 {
     /*
      * Zero all the results, in case we abort half-way through.

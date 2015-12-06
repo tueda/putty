@@ -187,7 +187,7 @@ static const char *adb_init(void *frontend_handle, void **backend_handle,
 	logevent(adb->frontend, buf);
 	sfree(buf);
     }
-    addr = name_lookup("localhost", port, realhost, conf, conf_get_int(conf, CONF_addressfamily));
+    addr = name_lookup("localhost", port, realhost, conf, conf_get_int(conf, CONF_addressfamily), adb->frontend, "Adb connection");
     if ((err = sk_addr_error(addr)) != NULL) {
 	sk_addr_free(addr);
 	return err;

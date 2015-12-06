@@ -198,7 +198,7 @@ void exit_thread(int exitcode) {
     cleanup_exit(exitcode);
 }
 
-void fatalbox(char *p, ...)
+void fatalbox(const char *p, ...)
 {
     char buffer[1024];
     va_list ap;
@@ -208,7 +208,7 @@ void fatalbox(char *p, ...)
     va_end(ap);
     exit_thread(1);
 }
-void modalfatalbox(char *p, ...)
+void modalfatalbox(const char *p, ...)
 {
     char buffer[1024];
     va_list ap;
@@ -218,7 +218,7 @@ void modalfatalbox(char *p, ...)
     MessageBox(NULL, buffer, "Fatal ERROR", MB_OK | MB_ICONERROR);
     exit_thread(1);
 }
-void nonfatal(char *p, ...)
+void nonfatal(const char *p, ...)
 {
   char buffer[1024];
   va_list ap;
@@ -228,7 +228,7 @@ void nonfatal(char *p, ...)
   MessageBox(NULL, buffer, "ERROR", MB_OK | MB_ICONERROR);
   exit_thread(1);
 }
-void connection_fatal(void *frontend, char *p, ...)
+void connection_fatal(void *frontend, const char *p, ...)
 {
     char buffer[1024];
     va_list ap;
@@ -238,7 +238,7 @@ void connection_fatal(void *frontend, char *p, ...)
     va_end(ap);
     exit_thread(1);
 }
-void cmdline_error(char *p, ...)
+void cmdline_error(const char *p, ...)
 {
     char buffer[1024];
     va_list ap;
@@ -870,7 +870,7 @@ static void set_cmdline_get_line_password(const char* password)
     }
 }
 
-int get_userpass_input(prompts_t *p, unsigned char *in, int inlen) {
+int get_userpass_input(prompts_t *p, const unsigned char *in, int inlen) {
 
     static int tried_once = 0;
 
