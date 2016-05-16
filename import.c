@@ -1139,6 +1139,7 @@ int openssh_pem_write(const Filename *filename, struct ssh2_userkey *key,
         header = "-----BEGIN EC PRIVATE KEY-----\n";
         footer = "-----END EC PRIVATE KEY-----\n";
     } else {
+        return 0;
         assert(0);                     /* zoinks! */
 	exit(1); /* XXX: GCC doesn't understand assert() on some systems. */
     }

@@ -890,6 +890,8 @@ int conf_launchable(Conf *conf)
 {
     if (conf_get_int(conf, CONF_protocol) == PROT_SERIAL)
 	return conf_get_str(conf, CONF_serline)[0] != 0;
+    else if (conf_get_int(conf, CONF_protocol) == PROT_ADB)
+	return conf_get_str(conf, CONF_adb_transport)[0] != 0;
     else
 	return conf_get_str(conf, CONF_host)[0] != 0;
 }
@@ -898,6 +900,8 @@ char const *conf_dest(Conf *conf)
 {
     if (conf_get_int(conf, CONF_protocol) == PROT_SERIAL)
 	return conf_get_str(conf, CONF_serline);
+    else if (conf_get_int(conf, CONF_protocol) == PROT_ADB)
+	return conf_get_str(conf, CONF_adb_transport);
     else
 	return conf_get_str(conf, CONF_host);
 }

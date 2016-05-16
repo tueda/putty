@@ -26,6 +26,12 @@
 static char *cmdline_keyfile = NULL;
 
 /*
+ * Export from l10n
+ */
+BOOL l10nSetDlgItemText(HWND dialog, int id, LPCSTR text);
+BOOL l10nAppendMenu(HMENU menu, UINT flags, UINT id, LPCSTR text);
+
+/*
  * Print a modal (Really Bad) message box and perform a fatal exit.
  */
 void modalfatalbox(const char *fmt, ...)
@@ -394,7 +400,7 @@ static void setupbigedit1(HWND hwnd, int id, int idstatic, struct RSAKey *key)
 {
     char *buffer = ssh1_pubkey_str(key);
     SetDlgItemText(hwnd, id, buffer);
-    SetDlgItemText(hwnd, idstatic,
+    l10nSetDlgItemText(hwnd, idstatic,
 		   "&Public key for pasting into authorized_keys file:");
     sfree(buffer);
 }
@@ -404,7 +410,7 @@ static void setupbigedit2(HWND hwnd, int id, int idstatic,
 {
     char *buffer = ssh2_pubkey_openssh_str(key);
     SetDlgItemText(hwnd, id, buffer);
-    SetDlgItemText(hwnd, idstatic, "&Public key for pasting into "
+    l10nSetDlgItemText(hwnd, idstatic, "&Public key for pasting into "
 		   "OpenSSH authorized_keys file:");
     sfree(buffer);
 }
@@ -794,43 +800,43 @@ static INT_PTR CALLBACK MainDlgProc(HWND hwnd, UINT msg,
 	    menu = CreateMenu();
 
 	    menu1 = CreateMenu();
-	    AppendMenu(menu1, MF_ENABLED, IDC_LOAD, "&Load private key");
-	    AppendMenu(menu1, MF_ENABLED, IDC_SAVEPUB, "Save p&ublic key");
-	    AppendMenu(menu1, MF_ENABLED, IDC_SAVE, "&Save private key");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_LOAD, "&Load private key");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_SAVEPUB, "Save p&ublic key");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_SAVE, "&Save private key");
 	    AppendMenu(menu1, MF_SEPARATOR, 0, 0);
-	    AppendMenu(menu1, MF_ENABLED, IDC_QUIT, "E&xit");
-	    AppendMenu(menu, MF_POPUP | MF_ENABLED, (UINT_PTR) menu1, "&File");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_QUIT, "E&xit");
+	    l10nAppendMenu(menu, MF_POPUP | MF_ENABLED, (UINT_PTR) menu1, "&File");
 	    state->filemenu = menu1;
 
 	    menu1 = CreateMenu();
-	    AppendMenu(menu1, MF_ENABLED, IDC_GENERATE, "&Generate key pair");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_GENERATE, "&Generate key pair");
 	    AppendMenu(menu1, MF_SEPARATOR, 0, 0);
-	    AppendMenu(menu1, MF_ENABLED, IDC_KEYSSH1, "SSH-&1 key (RSA)");
-	    AppendMenu(menu1, MF_ENABLED, IDC_KEYSSH2RSA, "SSH-2 &RSA key");
-	    AppendMenu(menu1, MF_ENABLED, IDC_KEYSSH2DSA, "SSH-2 &DSA key");
-            AppendMenu(menu1, MF_ENABLED, IDC_KEYSSH2ECDSA, "SSH-2 &ECDSA key");
-            AppendMenu(menu1, MF_ENABLED, IDC_KEYSSH2ED25519, "SSH-2 ED&25519 key");
-	    AppendMenu(menu, MF_POPUP | MF_ENABLED, (UINT_PTR) menu1, "&Key");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_KEYSSH1, "SSH-&1 key (RSA)");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_KEYSSH2RSA, "SSH-2 &RSA key");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_KEYSSH2DSA, "SSH-2 &DSA key");
+            l10nAppendMenu(menu1, MF_ENABLED, IDC_KEYSSH2ECDSA, "SSH-2 &ECDSA key");
+            l10nAppendMenu(menu1, MF_ENABLED, IDC_KEYSSH2ED25519, "SSH-2 ED&25519 key");
+	    l10nAppendMenu(menu, MF_POPUP | MF_ENABLED, (UINT_PTR) menu1, "&Key");
 	    state->keymenu = menu1;
 
 	    menu1 = CreateMenu();
-	    AppendMenu(menu1, MF_ENABLED, IDC_IMPORT, "&Import key");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_IMPORT, "&Import key");
 	    AppendMenu(menu1, MF_SEPARATOR, 0, 0);
-	    AppendMenu(menu1, MF_ENABLED, IDC_EXPORT_OPENSSH_AUTO,
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_EXPORT_OPENSSH_AUTO,
 		       "Export &OpenSSH key");
-	    AppendMenu(menu1, MF_ENABLED, IDC_EXPORT_OPENSSH_NEW,
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_EXPORT_OPENSSH_NEW,
 		       "Export &OpenSSH key (force new file format)");
-	    AppendMenu(menu1, MF_ENABLED, IDC_EXPORT_SSHCOM,
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_EXPORT_SSHCOM,
 		       "Export &ssh.com key");
-	    AppendMenu(menu, MF_POPUP | MF_ENABLED, (UINT_PTR) menu1,
+	    l10nAppendMenu(menu, MF_POPUP | MF_ENABLED, (UINT_PTR) menu1,
 		       "Con&versions");
 	    state->cvtmenu = menu1;
 
 	    menu1 = CreateMenu();
-	    AppendMenu(menu1, MF_ENABLED, IDC_ABOUT, "&About");
+	    l10nAppendMenu(menu1, MF_ENABLED, IDC_ABOUT, "&About");
 	    if (has_help())
-		AppendMenu(menu1, MF_ENABLED, IDC_GIVEHELP, "&Help");
-	    AppendMenu(menu, MF_POPUP | MF_ENABLED, (UINT_PTR) menu1, "&Help");
+		l10nAppendMenu(menu1, MF_ENABLED, IDC_GIVEHELP, "&Help");
+	    l10nAppendMenu(menu, MF_POPUP | MF_ENABLED, (UINT_PTR) menu1, "&Help");
 
 	    SetMenu(hwnd, menu);
 	}
@@ -941,7 +947,7 @@ static INT_PTR CALLBACK MainDlgProc(HWND hwnd, UINT msg,
 		sfree(state->entropy);
 		state->collecting_entropy = FALSE;
 
-		SetDlgItemText(hwnd, IDC_GENERATING, generating_msg);
+		l10nSetDlgItemText(hwnd, IDC_GENERATING, generating_msg);
 		SendDlgItemMessage(hwnd, IDC_PROGRESS, PBM_SETRANGE, 0,
 				   MAKELPARAM(0, PROGRESSRANGE));
 		SendDlgItemMessage(hwnd, IDC_PROGRESS, PBM_SETPOS, 0, 0);
@@ -1081,7 +1087,7 @@ static INT_PTR CALLBACK MainDlgProc(HWND hwnd, UINT msg,
                     SetDlgItemInt(hwnd, IDC_BITS, 256, FALSE);
                 }
 		ui_set_state(hwnd, state, 1);
-		SetDlgItemText(hwnd, IDC_GENERATING, entropy_msg);
+		l10nSetDlgItemText(hwnd, IDC_GENERATING, entropy_msg);
 		state->key_exists = FALSE;
 		state->collecting_entropy = TRUE;
 
